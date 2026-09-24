@@ -150,6 +150,10 @@ function music(){
 }
 
 /* ---------- networking: WebRTC (PeerJS) across devices, tabs-only fallback ---------- */
+/* Point this at your own PeerServer (e.g. deployed on Render) instead of the public PeerJS cloud broker.
+   This assumes you name your Render service "tank-wars-peer". If Render gives you a different URL
+   (because that name was taken), change the host below to match it exactly. */
+const PEER_OPTS = {host:'tank-wars-peer.onrender.com', port:443, path:'/myapp', secure:true};
 let bc,main,hub,hubOpen=false,conns={},net='connecting',lobby='public',gen=0,hubMissing=false;
 const hubId=()=>'tankwars-'+lobby.replace(/\W/g,'')+'-hub';
 const netText=()=>net=='online'?(Object.keys(conns).length?'online ('+Object.keys(conns).length+' linked)':'online, waiting for players'):net=='local'?'this device only (online blocked)':'connecting...';
@@ -166,7 +170,7 @@ function connectNet(){
   const go=()=>{
     if(g0!=gen)return;
     if(!window.Peer){net='local';startBC();return}
-    const m=main=new Peer();
+    const m=main=new Peer(PEER_OPTS);
     m.on('open',()=>{if(g0!=gen)return;net='online';if(bc){bc.close();bc=null}claimHub();discover()});
     m.on('connection',wire);
     m.on('disconnected',()=>{try{m.reconnect()}catch(x){}});
@@ -177,7 +181,7 @@ function connectNet(){
 }
 function claimHub(){
   if(hub||!main)return;
-  const h=hub=new Peer(hubId());
+  const h=hub=new Peer(hubId(),PEER_OPTS);
   h.on('open',()=>{hubOpen=true});
   h.on('disconnected',()=>{try{h.reconnect()}catch(x){}});
   h.on('connection',c=>c.on('open',()=>c.send({t:'peers',list:[main.id,...Object.keys(conns)]})));
