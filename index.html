@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Tank Wars</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#1d2620;overflow:hidden;font:13px Verdana,Arial,sans-serif;color:#fff}
@@ -11,6 +9,7 @@ canvas{display:block}
 #shop{right:8px;top:8px;width:260px;max-height:calc(100vh - 16px);overflow-y:auto}
 #pl{left:8px;bottom:8px;width:210px}
 #msg{left:50%;top:10px;transform:translateX(-50%);display:none;text-align:center}
+#inv{left:50%;bottom:20px;transform:translateX(-50%);display:none;text-align:center}
 button{background:#2a8f55;border:0;color:#fff;padding:5px 8px;margin:2px 0;border-radius:4px;cursor:pointer;font:12px Verdana,Arial,sans-serif}
 button:disabled{background:#4a4f4b;color:#999;cursor:default}
 #shop button,#pl button{display:block;width:100%;text-align:left}
@@ -18,53 +17,22 @@ input{width:95px;padding:3px}
 h4{margin:4px 0}
 #mini{display:none;font-weight:bold}
 body.mini #shop,body.mini #pl,body.mini #full{display:none}
+body.mini #mini{display:block}
 body.mini #hud{width:auto;padding:4px 10px}
-#pair{position:fixed;inset:0;background:#0d140fee;display:flex;align-items:center;justify-content:center;z-index:50}
-#pairBox{background:#0b120d;border:1px solid #4a6;border-radius:10px;padding:18px 20px;width:320px;max-width:92vw;max-height:92vh;overflow-y:auto;text-align:center}
-#pairBox p{font-size:12px;line-height:1.5;color:#cde}
-#pairBox button{width:100%;font-size:13px;padding:8px}
-.qrbox{background:#fff;padding:8px;display:inline-block;border-radius:6px}
-.camview{width:250px;height:250px;margin:8px auto;border-radius:6px;overflow:hidden;background:#000}
-details summary{cursor:pointer;color:#9fd8ff}
 </style></head><body>
 <canvas id="c"></canvas>
 <div class="p" id="hud">
 <div id="mini"></div><div id="full">
  <b>Name:</b> <input id="nm" maxlength="14"> <button id="sn">Set</button><br>
+ <b>Lobby:</b> <input id="lb" maxlength="16" value="public"> <button id="jl">Join</button><br>
  <button id="sv">Save game</button> <button id="snd">Sound: on</button> <button id="mus">Music: on</button>
  <div id="info"></div>
- <details><summary>How to play</summary><small>WASD move · Left/Right arrows turn turret · Space fire · C hides/shows panels · Caps Lock = safe zone · H = repair ($1500)<br>Multiplayer pairs two devices directly over a QR code handshake - no account or server needed.<br>Check the Skins section in the shop to customize your tank's look.</small></details></div>
+ <small>WASD move · Left/Right arrows turn turret · Space fire · click a player to challenge · C hides/shows panels · Caps Lock = safe zone · H = repair ($1500)</small></div>
 </div>
-<div class="p" id="shop"><h4>Upgrades</h4><div id="ups"></div><div id="lgs" style="display:none"><h4>Legendary upgrades</h4><div id="lgu"></div></div><h4>Skins</h4><div id="skn"></div><h4>Bank</h4><button id="bk"></button><small id="bkh"></small><h4>Repair (H)</h4><button id="hl"></button><h4>Safe zone</h4><button id="sk"></button><small>Caps Lock: 20s of safety, then a 5 min cooldown</small></div>
-<div class="p" id="pl"><h4>Connection</h4><div id="plist"></div><button id="lv" style="display:none">Disconnect</button></div>
+<div class="p" id="shop"><h4>Upgrades</h4><div id="ups"></div><div id="lgs" style="display:none"><h4>Legendary upgrades</h4><div id="lgu"></div></div><h4>Bank</h4><button id="bk"></button><small id="bkh"></small><h4>Repair (H)</h4><button id="hl"></button><h4>Safe zone</h4><button id="sk"></button><small>Caps Lock: 20s of safety, then a 5 min cooldown</small></div>
+<div class="p" id="pl"><h4>Players in your game</h4><div id="plist"></div><button id="lv" style="display:none">Leave match</button></div>
 <div class="p" id="msg"></div>
-<div id="pair"><div id="pairBox">
- <div id="pairChoice">
-  <h4>Tank Wars Multiplayer</h4>
-  <p>Pair two devices directly - no server, no account. Scan QR codes back and forth to connect.</p>
-  <button id="pHost">Host Game</button>
-  <button id="pJoin">Join Game</button>
-  <button id="pSolo">Play Solo (vs NPCs)</button>
- </div>
- <div id="pairHost" style="display:none">
-  <h4>Hosting</h4>
-  <p>1. Let the other player scan this code:</p>
-  <div id="qrA" class="qrbox"></div>
-  <p>2. Then point your camera at <b>their</b> code:</p>
-  <div id="camHost" class="camview"></div>
-  <p id="pairStatus1"></p>
-  <button id="pBackH">Cancel</button>
- </div>
- <div id="pairJoin" style="display:none">
-  <h4>Joining</h4>
-  <p>1. Scan the host's QR code with your camera:</p>
-  <div id="camJoin" class="camview"></div>
-  <p>2. Then show this code back to the host:</p>
-  <div id="qrB" class="qrbox" style="display:none"></div>
-  <p id="pairStatus2"></p>
-  <button id="pBackJ">Cancel</button>
- </div>
-</div></div>
+<div class="p" id="inv"><span id="it"></span><br><button id="ia">Accept</button> <button id="id">Decline</button></div>
 <script>
 const cv=document.getElementById('c'),g=cv.getContext('2d'),$=s=>document.getElementById(s);
 const W=2400,H=1600;
@@ -96,65 +64,26 @@ const TIERS=['Rookie','Scout','Soldier','Veteran','Elite','Legend','Mythic','Inf
 const LCOL=['','','','','','','#9fd8ff','#c01a3a','#22e08a',''],LGLOW=['','','','','','gold','#7cf','#f33','#3f9','#fff'];
 const COLS=['#6a8f5a','#5a8fa8','#a89a4a','#b06a3a','#8a4ab0','#d4b030','#9fd8ff','#c01a3a','#22e08a','#ffffff'];
 const MAXLV=20,LK=['rad','dmg','hp','arm'],LMAX=10,lcost=v=>2500+v*1500;
-const st=l=>{const g=l===me.lv?me.lg:{},gt=(g.rad||0)+(g.dmg||0)+(g.hp||0)+(g.arm||0),e=q=>gt?(g[q]||0)+1:0;return{rad:26+l.rad*6+e('rad')*32,dmg:18+l.dmg*6+e('dmg')*60,spd:110+l.spd*12+(gt?85:0),mhp:100+l.hp*25+e('hp')*320,red:Math.min(.97,1-1/(1+.12*l.arm+1.15*e('arm'))),cd:Math.max(.14,.5-gt*.019)}};
+const st=l=>{const g=l===me.lv?me.lg:{},gt=(g.rad||0)+(g.dmg||0)+(g.hp||0)+(g.arm||0),e=q=>gt?(g[q]||0)+1:0;return{rad:26+l.rad*6+e('rad')*20,dmg:18+l.dmg*6+e('dmg')*34,spd:110+l.spd*12+(gt?40:0),mhp:100+l.hp*25+e('hp')*180,red:Math.min(.96,1-1/(1+.12*l.arm+.7*e('arm'))),cd:Math.max(.26,.5-gt*.01)}};
 const cost=v=>40+v*35;
 const tierOf=l=>{let t=Math.min(5,Math.floor(KEYS.reduce((s,k)=>s+l[k],0)/6));if(l===me.lv&&me.legend){const n=LK.reduce((s,q)=>s+me.lg[q],0);t=Math.max(t,n>=28?9:n>=14?8:n>=5?7:n>=1?6:0)}return t};
 const avgLv=l=>KEYS.reduce((s,k)=>s+l[k],0)/5;
-const isMax=()=>KEYS.every(q=>me.lv[q]>=MAXLV),npcCap=()=>isMax()?1:4;
-const maxBank=()=>Math.floor(Math.min(...KEYS.map(q=>me.lv[q]))/2);
-const bankCost=()=>{const gap=Math.max(1,avgLv(me.lv)-me.bank*2);return Math.round(250*(me.bank+1)*(1+gap*.12))};
-
-/* ---------- skins ---------- */
-const SKINS=[
- {id:'default',name:'Default',cost:0},
- {id:'crimson',name:'Crimson',cost:400,col:'#c0392b'},
- {id:'azure',name:'Azure',cost:400,col:'#2980b9'},
- {id:'emerald',name:'Emerald',cost:400,col:'#27ae60'},
- {id:'violet',name:'Violet',cost:700,col:'#8e44ad'},
- {id:'obsidian',name:'Obsidian',cost:1000,col:'#161616'},
- {id:'golden',name:'Golden',cost:2000,col:'#f1c40f',glow:'#ffdd55'},
-];
-const SECRET_SKINS=[
- {id:'phoenix',name:'Phoenix Ember',cost:0,col:'#ff5e1a',glow:'#ffae42',secret:true},
- {id:'voidwalker',name:'Void Walker',cost:0,col:'#2b0033',glow:'#a020f0',secret:true},
- {id:'chronomancer',name:'Chronomancer',cost:0,col:'#00e5ff',glow:'#88ffff',secret:true,rainbow:true},
-];
-const ALL_SKINS=SKINS.concat(SECRET_SKINS);
-const skinById=sid=>ALL_SKINS.find(s=>s.id===sid)||SKINS[0];
-const allSkins=()=>me.name==='Lucius'?ALL_SKINS:SKINS;
-function grantLuciusExtras(){
-  if(me.name!=='Lucius')return;
-  let got=false;
-  SECRET_SKINS.forEach(s=>{if(!me.skins.includes(s.id)){me.skins.push(s.id);got=true}});
-  if(got){note('Secret Lucius skins unlocked!');sfx('bank');sfx('up')}
-}
+const isMax=()=>KEYS.every(q=>me.lv[q]>=MAXLV),npcCap=()=>isMax()?1:3;
 
 const id=Math.random().toString(36).slice(2,8);
-const me={x:W/2,y:H/2,a:0,ta:0,hp:100,inv:2,cd:0,auto:false,lg:{rad:0,dmg:0,hp:0,arm:0},legend:false,kills:0,safe:0,cool:0,back:{x:W/2,y:H/2},money:0,bank:0,name:'Rookie'+id.slice(0,2),room:'public',skin:'default',skins:['default'],
+const me={x:W/2,y:H/2,a:0,ta:0,hp:100,inv:2,cd:0,auto:false,lg:{rad:0,dmg:0,hp:0,arm:0},legend:false,kills:0,safe:0,cool:0,back:{x:W/2,y:H/2},money:0,bank:0,name:'Rookie'+id.slice(0,2),room:'public',
   lv:{rad:0,dmg:0,spd:0,hp:0,arm:0}};
 
 /* ---------- cookies ---------- */
-function save(q){try{document.cookie='tw='+encodeURIComponent(JSON.stringify({lv:me.lv,money:me.money,bank:me.bank,name:me.name,lg:me.lg,legend:me.legend,skin:me.skin,skins:me.skins}))+';max-age=31536000;path=/';if(q!==true){sfx('ping');note('Game saved')}}catch(e){if(q!==true)note('Could not save (cookies blocked)')}}
-try{const m=document.cookie.match(/tw=([^;]+)/);if(m){const s=JSON.parse(decodeURIComponent(m[1]));me.lv=s.lv;me.money=s.money;me.bank=s.bank;me.name=s.name;if(s.lg)me.lg=s.lg;me.legend=!!s.legend;if(s.skin)me.skin=s.skin;if(Array.isArray(s.skins)&&s.skins.length)me.skins=s.skins}}catch(e){}
+function save(q){try{document.cookie='tw='+encodeURIComponent(JSON.stringify({lv:me.lv,money:me.money,bank:me.bank,name:me.name,lg:me.lg,legend:me.legend}))+';max-age=31536000;path=/';if(q!==true){sfx('ping');note('Game saved')}}catch(e){if(q!==true)note('Could not save (cookies blocked)')}}
+try{const m=document.cookie.match(/tw=([^;]+)/);if(m){const s=JSON.parse(decodeURIComponent(m[1]));me.lv=s.lv;me.money=s.money;me.bank=s.bank;me.name=s.name;if(s.lg)me.lg=s.lg;me.legend=!!s.legend}}catch(e){}
 me.hp=st(me.lv).mhp;
 $('nm').value=me.name;const isKey=v=>v.trim().toLowerCase().replace(/\s+/g,' ')=='open sesame';
 function unlockLegend(){if(me.legend)return;me.legend=true;sfx('bank');sfx('up');note('Legendary upgrades unlocked!');save(true)}
 if(isKey(me.name))me.legend=true;
-$('nm').oninput=e=>{if(isKey(e.target.value))unlockLegend()};
+$('nm').oninput=e=>{me.name=e.target.value.trim().slice(0,14)||'Player';if(isKey(e.target.value))unlockLegend()};
 $('nm').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
-function nameTaken(n){const now=performance.now();return Object.values(peers).some(p=>p.name===n&&now-(p.seen||0)<8000)}
-function resolveNameConflict(){
-  const dup=vis().find(p=>p.name===me.name);
-  if(dup&&String(dup.id)<String(id)){
-    const old=me.name;me.name=me.name+(Math.floor(Math.random()*90)+10);$('nm').value=me.name;
-    note('Name "'+old+'" was taken - renamed to '+me.name);sfx('ping');
-  }
-}
-$('sn').onclick=()=>{
-  const n=($('nm').value.trim().slice(0,14))||'Player';
-  if(n!==me.name&&nameTaken(n)){note('Name "'+n+'" is already taken by the connected player - pick another');$('nm').value=me.name;return}
-  me.name=n;note('Name set to '+me.name);sfx('ping');grantLuciusExtras();
-};
+$('sn').onclick=()=>{note('Name set to '+me.name);sfx('ping')};
 $('sv').onclick=save;
 
 /* ---------- networking (BroadcastChannel: tabs/windows on the same site) ---------- */
@@ -200,99 +129,97 @@ function sfx(n,x,y,p){
   else if(n=='ping')tone('sine',880,1320,.2,.25);
 }
 function engine(mv,tr){if(!AC)return;const t=AC.currentTime,f=Math.max(30,(mv?58:40)-Math.min(tr,5)*3);eng.frequency.setTargetAtTime(f,t,.15);eng2.frequency.setTargetAtTime(f*.5,t,.15);engF.frequency.setTargetAtTime(mv?320:170,t,.2);engG.gain.setTargetAtTime(mv?.13:.05,t,.15)}
-/* gentle, grand orchestral swell: warm sustained pad chords (Am-F-G-Am) with a soft triangle lead, slower & spacious - no drums, no harsh sawtooth */
-const CHORDS=[[110,164.81,220],[87.31,130.81,174.61],[98,146.83,196],[110,130.81,164.81]];
-const LEAD=[0,0,440,0,523.25,0,587.33,0,0,0,523.25,0,440,0,392,0,0,0,440,0,523.25,0,659.25,0,587.33,0,523.25,0,440,0,392,0];
+/* marching war-drum loop in A minor: kick, snare, hats, bass and a brass-like lead */
+const BS=[55,55,0,55,65.4,0,49,0,55,55,0,55,73.4,0,65.4,0],LD=[0,0,0,0,0,0,0,0,220,0,262,0,330,0,294,262,0,0,0,0,0,0,0,0,247,0,294,0,330,0,262,0];
 function music(){
   if(!AC||!soundOn||!musicOn)return;
   if(nextT<AC.currentTime)nextT=AC.currentTime+.05;
   while(nextT<AC.currentTime+.4){
-    const d=nextT-AC.currentTime,q=step%32,ch=CHORDS[Math.floor(step/16)%CHORDS.length];
-    if(q%16==0)ch.forEach(f=>{tone('sine',f,f,7.4,.15,d,musG);tone('sine',f*1.004,f*1.004,7.4,.1,d,musG)});
-    if(q%8==0)tone('sine',ch[0]/2,ch[0]/2,3.7,.2,d,musG);
-    const l=LEAD[q];if(l)tone('triangle',l,l,.9,.15,d,musG);
-    nextT+=.42;step++;
+    const d=nextT-AC.currentTime,q=step%32;
+    if(q%4==0)tone('sine',130,45,.18,.9,d,musG);
+    if(q%8==4)noise(.14,.5,3500,1200,d,musG,'bandpass');
+    if(q%2==1)noise(.04,.12,9000,7000,d,musG,'highpass');
+    const b=BS[q%16];if(b){tone('triangle',b,b,.24,.7,d,musG);tone('triangle',b*2,b*2,.2,.25,d,musG)}
+    const l=LD[q];if(l)tone('sawtooth',l,l,.3,.3,d,musG);
+    nextT+=.27;step++;
   }
 }
 
-/* ---------- networking: serverless WebRTC, connected purely over a two-step QR code handshake ---------- */
-let pc=null,dc=null,net='pairing';
-const ICE_SERVERS=[{urls:'stun:stun.l.google.com:19302'}]; // standard public STUN server, just for NAT traversal - not a signaling backend
-function newPC(){
-  const c=new RTCPeerConnection({iceServers:ICE_SERVERS});
-  c.onconnectionstatechange=()=>{if(pc===c&&['disconnected','failed','closed'].includes(c.connectionState))dropConn()};
-  return c;
+/* ---------- networking: WebRTC (PeerJS) across devices, tabs-only fallback ---------- */
+let bc,main,hub,hubOpen=false,conns={},net='connecting',lobby='public',gen=0,hubMissing=false;
+const hubId=()=>'tankwars-'+lobby.replace(/\W/g,'').toLowerCase()+'-hub';
+const netText=()=>net=='online'?(Object.keys(conns).length?'online ('+Object.keys(conns).length+' linked)':'online, waiting for players'):net=='local'?'this device only (online blocked)':'connecting...';
+function startBC(){if(bc)return;try{bc=new BroadcastChannel('tankwars_v1_'+lobby);bc.onmessage=e=>onMsg(e.data)}catch(e){}}
+function loadPeerJS(cb){
+  const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';s.onload=cb;
+  s.onerror=()=>{const u=document.createElement('script');u.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';u.onload=cb;u.onerror=cb;document.head.appendChild(u)};
+  document.head.appendChild(s);
 }
-function wireDC(channel){
-  dc=channel;
-  dc.onopen=()=>{net='online';$('pair').style.display='none';note('Connected! Fight!');sfx('bank')};
-  dc.onclose=dropConn;dc.onerror=dropConn;
-  dc.onmessage=e=>{try{onMsg(JSON.parse(e.data))}catch(err){}};
+function connectNet(){
+  const g0=++gen;
+  try{main&&main.destroy();hub&&hub.destroy();bc&&bc.close()}catch(e){}
+  main=hub=bc=null;hubOpen=false;conns={};for(const p in peers)delete peers[p];net='connecting';
+  const go=()=>{
+    if(g0!=gen)return;
+    if(!window.Peer){net='local';startBC();return}
+    const m=main=new Peer();
+    m.on('open',()=>{if(g0!=gen)return;net='online';if(bc){bc.close();bc=null}claimHub();discover()});
+    m.on('connection',wire);
+    m.on('disconnected',()=>{try{m.reconnect()}catch(x){}});
+    m.on('error',e=>{if(e.type=='peer-unavailable'&&String(e.message).includes(hubId()))hubMissing=true;if(net!='online'&&['network','server-error','socket-error','socket-closed'].includes(e.type)){net='local';startBC()}});
+  };
+  window.Peer?go():loadPeerJS(go);
+  setTimeout(()=>{if(g0==gen&&net=='connecting'){net='local';startBC()}},9000);
 }
-function dropConn(){if(net=='online')note('Connection lost');net='pairing';for(const p in peers)delete peers[p];dc=null;pc=null;$('pair').style.display='flex';showPane('pairChoice')}
-function waitIce(c){return new Promise(res=>{if(c.iceGatheringState=='complete')return res();const chk=()=>{if(c.iceGatheringState=='complete'){c.removeEventListener('icegatheringstatechange',chk);res()}};c.addEventListener('icegatheringstatechange',chk);setTimeout(res,4000)})}
-function sdpJSON(desc){return JSON.stringify({type:desc.type,sdp:desc.sdp})}
-function showQR(elId,text){const el=$(elId);el.innerHTML='';try{new QRCode(el,{text,width:220,height:220,correctLevel:QRCode.CorrectLevel.L})}catch(e){el.textContent='Could not render QR code - try again.'}}
-const scanners={};
-function startScanner(elId,cb){
-  stopScanner(elId);
-  const q=new Html5Qrcode(elId);scanners[elId]=q;
-  q.start({facingMode:'environment'},{fps:10,qrbox:220},txt=>cb(txt),()=>{}).catch(()=>{$(elId).textContent='Camera unavailable - check permissions.'});
+function claimHub(){
+  if(hub||!main)return;
+  const h=hub=new Peer(hubId());
+  h.on('open',()=>{hubOpen=true});
+  h.on('disconnected',()=>{try{h.reconnect()}catch(x){}});
+  h.on('connection',c=>c.on('open',()=>c.send({t:'peers',list:[main.id,...Object.keys(conns)]})));
+  h.on('error',()=>{if(hub===h){hub=null;hubOpen=false}try{h.destroy()}catch(x){}});
 }
-function stopScanner(elId){const q=scanners[elId];if(q){try{q.stop().then(()=>q.clear()).catch(()=>{})}catch(e){}delete scanners[elId]}}
-function showPane(id){['pairChoice','pairHost','pairJoin'].forEach(p=>$(p).style.display=p==id?'block':'none')}
-function handleHostScan(txt){
-  stopScanner('camHost');
-  pc.setRemoteDescription(JSON.parse(txt)).then(()=>{$('pairStatus1').textContent='Connecting...'})
-    .catch(()=>{$('pairStatus1').textContent='That code did not look right - point at their QR B and try again.';startScanner('camHost',handleHostScan)});
+function discover(){
+  if(!main||!main.id)return;
+  const d=main.connect(hubId(),{serialization:'json',reliable:true});
+  d.on('data',m=>{if(m&&m.t=='peers'){m.list.forEach(join);setTimeout(()=>d.close(),500)}});
+  setTimeout(()=>{try{d.close()}catch(x){}},8000);
 }
-async function hostFlow(){
-  if(!window.QRCode||!window.Html5Qrcode){note('QR libraries failed to load - check your connection and reload');return}
-  showPane('pairHost');$('qrA').innerHTML='';$('pairStatus1').textContent='Generating code...';
-  pc=newPC();wireDC(pc.createDataChannel('game'));
-  const offer=await pc.createOffer();await pc.setLocalDescription(offer);await waitIce(pc);
-  showQR('qrA',sdpJSON(pc.localDescription));$('pairStatus1').textContent='Waiting for their code...';
-  startScanner('camHost',handleHostScan);
+function join(pid){if(main&&pid!=main.id&&!conns[pid])wire(main.connect(pid,{serialization:'json',reliable:true}))}
+function wire(c){
+  const pid=c.peer;conns[pid]=c;
+  c.on('data',m=>{if(m&&m.t)onMsg(m)});
+  const gone=()=>{if(conns[pid]===c)delete conns[pid]};c.on('close',gone);c.on('error',gone);
 }
-function handleJoinScan(txt){
-  stopScanner('camJoin');
-  (async()=>{
-    try{
-      await pc.setRemoteDescription(JSON.parse(txt));
-      const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await waitIce(pc);
-      showQR('qrB',sdpJSON(pc.localDescription));$('qrB').style.display='inline-block';
-      $('pairStatus2').textContent='Show this code to the host now.';
-    }catch(e){$('pairStatus2').textContent='That code did not look right - point at their QR A and try again.';startScanner('camJoin',handleJoinScan)}
-  })();
-}
-async function joinFlow(){
-  if(!window.QRCode||!window.Html5Qrcode){note('QR libraries failed to load - check your connection and reload');return}
-  showPane('pairJoin');$('qrB').style.display='none';$('pairStatus2').textContent='Scanning...';
-  pc=newPC();pc.ondatachannel=e=>wireDC(e.channel);
-  startScanner('camJoin',handleJoinScan);
-}
-function cancelPairing(){try{pc&&pc.close()}catch(e){}pc=null;stopScanner('camHost');stopScanner('camJoin');showPane('pairChoice')}
-$('pHost').onclick=hostFlow;$('pJoin').onclick=joinFlow;
-$('pSolo').onclick=()=>{net='solo';$('pair').style.display='none';note('Playing solo vs NPCs')};
-$('pBackH').onclick=cancelPairing;$('pBackJ').onclick=cancelPairing;
-$('lv').onclick=()=>{try{dc&&dc.close();pc&&pc.close()}catch(e){}dropConn()};
-const netText=()=>net=='online'?'connected (P2P)':net=='solo'?'solo (no P2P)':'not paired - see setup screen';
-const send=m=>{if(dc&&dc.readyState=='open')try{dc.send(JSON.stringify(m))}catch(e){}};
-const peers={};
-const vis=()=>Object.values(peers).filter(p=>performance.now()-p.seen<2500);
-setInterval(()=>send({t:'s',id,name:me.name,x:me.x,y:me.y,a:me.a,ta:me.ta,hp:me.hp,mhp:st(me.lv).mhp,tr:tierOf(me.lv),sf:me.safe>0,sk:me.skin}),50);
-setInterval(()=>{resolveNameConflict();grantLuciusExtras()},2000);
+let tick=0;
+setInterval(()=>{if(net!='online')return;tick++;if(!hub&&(hubMissing||tick%6==0)){hubMissing=false;claimHub()}if(!hubOpen&&(!Object.keys(conns).length||tick%2==0))discover()},5000);
+addEventListener('pagehide',()=>send({t:'bye',id}));
+const send=m=>{try{bc&&bc.postMessage(m)}catch(e){}for(const p in conns){const c=conns[p];if(c.open)try{c.send(m)}catch(e){}}};
+const peers={};let invite=null;
+const vis=()=>Object.values(peers).filter(p=>p.room==me.room&&performance.now()-p.seen<3500);
+setInterval(()=>send({t:'s',id,name:me.name,x:me.x,y:me.y,a:me.a,ta:me.ta,hp:me.hp,mhp:st(me.lv).mhp,tr:tierOf(me.lv),room:me.room,sf:me.safe>0}),66);
 function onMsg(d){
   if(d.id===id)return;
   if(d.t=='s'){let o=peers[d.id];
-    if(!o){o=peers[d.id]={x:d.x,y:d.y,a:d.a,ta:d.ta};note(d.name+' connected');sfx('ping')}
+    if(!o){o=peers[d.id]={x:d.x,y:d.y,a:d.a,ta:d.ta};if(d.room==me.room){note(d.name+' joined');sfx('ping')}}
     Object.assign(o,d,{x:o.x,y:o.y,a:o.a,ta:o.ta,tx:d.x,ty:d.y,tA:d.a,tT:d.ta,seen:performance.now()})}
-  else if(d.t=='f'){sfx('shot',d.x,d.y);bullets.push({x:d.x,y:d.y,vx:Math.cos(d.a)*520,vy:Math.sin(d.a)*520,dmg:d.dmg,rad:d.rad,o:d.id,life:1.6})}
+  else if(d.t=='bye')delete peers[d.id];
+  else if(d.t=='f'){if(d.room==me.room){sfx('shot',d.x,d.y);bullets.push({x:d.x,y:d.y,vx:Math.cos(d.a)*520,vy:Math.sin(d.a)*520,dmg:d.dmg,rad:d.rad,o:d.id,life:1.6})}}
   else if(d.t=='die'&&d.by==id){
     me.money+=d.money;me.lv.arm=Math.min(MAXLV,me.lv.arm+d.arm);me.lv.hp=Math.min(MAXLV,me.lv.hp+d.hp);
     me.hp=st(me.lv).mhp;me.kills++;sfx('coin');note('You destroyed '+d.name+(d.money?'! +$'+d.money:'!'));
-  }
+  }else if(d.t=='inv'&&d.to==id){invite=d;sfx('ping');$('it').textContent=d.from+' invited you to a match';$('inv').style.display='block'}
 }
+function challenge(p){
+  if(me.room!='public'&&vis().length>=9){note('Match is full (10 players)');return}
+  if(me.room=='public')enterRoom('m'+id+Date.now().toString(36));
+  send({t:'inv',id,to:p.id,room:me.room,from:me.name});note('Invited '+p.name);
+}
+function enterRoom(r){me.room=r;me.safe=0;bullets.length=0;npcs.length=0;bases.length=0;respawn();$('lv').style.display=r=='public'?'none':'block'}
+$('ia').onclick=()=>{if(invite)enterRoom(invite.room);invite=null;$('inv').style.display='none'};
+$('id').onclick=()=>{invite=null;$('inv').style.display='none'};
+$('lv').onclick=()=>enterRoom('public');
+cv.onclick=e=>{const wx=e.clientX+cx,wy=e.clientY+cy;const p=vis().find(p=>Math.hypot(p.x-wx,p.y-wy)<35);if(p)challenge(p)};
 
 /* ---------- game state ---------- */
 const bullets=[],npcs=[],bases=[],fx=[];let cx=0,cy=0;
@@ -321,7 +248,7 @@ function boom(b){
   fx.push({x:b.x,y:b.y,r:b.rad,t:.35});sfx('boom',b.x,b.y,b.rad);
   if(b.o!=id&&Math.hypot(b.x-me.x,b.y-me.y)<b.rad+16)hurtMe(b.dmg,b.o);
   if(b.o==id){
-    for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];if(Math.hypot(b.x-n.x,b.y-n.y)<b.rad+16){n.hp-=b.dmg*(1-n.s.red);if(n.hp<=0){me.money+=n.money;sfx('coin');note('NPC tank destroyed +$'+n.money);const nb=n.base;npcs.splice(i,1);if(nb&&bases.includes(nb)&&npcs.length<npcCap()&&npcs.filter(t=>t.base===nb).length<3)mkNpc(nb)}}}
+    for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];if(Math.hypot(b.x-n.x,b.y-n.y)<b.rad+16){n.hp-=b.dmg*(1-n.s.red);if(n.hp<=0){me.money+=n.money;sfx('coin');note('NPC tank destroyed +$'+n.money);npcs.splice(i,1)}}}
     for(let i=bases.length-1;i>=0;i--){const n=bases[i];if(Math.hypot(b.x-n.x,b.y-n.y)<b.rad+40){n.hp-=b.dmg;if(n.hp<=0){me.money+=n.money;sfx('coin');sfx('boom',n.x,n.y,120);note('NPC base destroyed +$'+n.money);npcs.forEach(t=>{if(t.base===n)t.base=null});bases.splice(i,1)}}}
   }
 }
@@ -347,35 +274,23 @@ function heal(){
   if(me.money<1500){note('Full repair costs $1500');return}
   me.money-=1500;me.hp=m;sfx('up');note('Tank fully repaired (-$1500)');
 }
-let code='',latch=0,letterBuf='';
+let code='',latch=0;
 const combo=()=>k.Backspace&&k.Enter&&(k.ShiftLeft||k.ShiftRight)&&(k.Digit5||k.Numpad5);
-function resetProgress(){
-  const keepMoney=me.money;
-  me.lv={rad:0,dmg:0,spd:0,hp:0,arm:0};me.lg={rad:0,dmg:0,hp:0,arm:0};me.legend=false;me.bank=0;
-  me.skins=['default'];me.skin='default';me.kills=0;me.money=keepMoney;me.hp=st(me.lv).mhp;
-  note('Progress reset! (money kept: $'+me.money+')');sfx('die');save(true);
-}
 onkeydown=e=>{initAudio();if(e.target.tagName=='INPUT')return;k[e.code]=1;
   if(['Space','Backspace','Enter'].includes(e.code)||e.code.startsWith('Arrow'))e.preventDefault();
   if(e.code=='KeyM'&&!e.repeat)toggleSound();
-  if(e.code=='Tab'){e.preventDefault();
-    if(e.shiftKey&&e.altKey&&!e.repeat){
-      if(me.name==='Lucius'){me.auto=!me.auto;note('Cheat auto-aim '+(me.auto?'ON':'OFF'));sfx('ping')}
-    }else if(e.shiftKey&&!e.repeat){me.auto=!me.auto;note('Auto-aim '+(me.auto?'ON':'OFF'));sfx('ping')}
-  }
+  if(e.code=='Tab'){e.preventDefault();if(e.shiftKey&&!e.repeat){me.auto=!me.auto;note('Auto-aim '+(me.auto?'ON':'OFF'));sfx('ping')}}
   if(e.code=='KeyH'&&!e.repeat)heal();
   if(e.code=='KeyC'&&!e.repeat)document.body.classList.toggle('mini');
   if(e.code=='CapsLock'&&!e.repeat)safeZone();
   if(combo()&&!latch){latch=1;me.money=0;sfx('die');note('Secret code: all your money was deleted')}
-  if(/^(Digit|Numpad)\d$/.test(e.code)&&!e.repeat){code=(code+e.code.slice(-1)).slice(-8);if(code=='88344347'){code='';if(me.name==='Lucius'){me.money*=2;sfx('bank');sfx('coin');note('Secret code! Money doubled to $'+me.money)}}}
-  if(/^Key[A-Z]$/.test(e.code)&&!e.repeat){letterBuf=(letterBuf+e.code.slice(-1)).slice(-5);if(letterBuf==='RESET'){letterBuf='';resetProgress()}}
-};
+  if(/^(Digit|Numpad)\d$/.test(e.code)&&!e.repeat){code=(code+e.code.slice(-1)).slice(-8);if(code=='88344347'){code='';me.money*=2;sfx('bank');sfx('coin');note('Secret code! Money doubled to $'+me.money)}}};
 onkeyup=e=>{k[e.code]=0;if(!combo())latch=0};
-onblur=()=>{for(const c in k)k[c]=0;latch=0;letterBuf=''};
+onblur=()=>{for(const c in k)k[c]=0;latch=0};
 let tn=2,tb=25;
 function update(dt){
   const s=st(me.lv);me.cd-=dt;me.inv-=dt;
-  {const kk=Math.min(1,22*dt);Object.values(peers).forEach(p=>{if(p.tx==null)return;if(Math.hypot(p.tx-p.x,p.ty-p.y)>250){p.x=p.tx;p.y=p.ty}p.x+=(p.tx-p.x)*kk;p.y+=(p.ty-p.y)*kk;p.a+=ad(p.a,p.tA)*kk;p.ta+=ad(p.ta,p.tT)*kk})}
+  {const kk=Math.min(1,14*dt);Object.values(peers).forEach(p=>{if(p.tx==null)return;if(Math.hypot(p.tx-p.x,p.ty-p.y)>250){p.x=p.tx;p.y=p.ty}p.x+=(p.tx-p.x)*kk;p.y+=(p.ty-p.y)*kk;p.a+=ad(p.a,p.tA)*kk;p.ta+=ad(p.ta,p.tT)*kk})}
   if(me.safe>0){me.safe-=dt;if(me.safe<=0){me.safe=0;me.cool=300;const p=blocked(me.back.x,me.back.y)?openPos(me.back.x,me.back.y,10,120):me.back;me.x=p.x;me.y=p.y;me.inv=2;note('Safe zone over - back to battle');sfx('ping')}}
   else if(me.cool>0)me.cool=Math.max(0,me.cool-dt);
   let dx=(k.KeyD?1:0)-(k.KeyA?1:0),dy=(k.KeyS?1:0)-(k.KeyW?1:0);
@@ -409,12 +324,10 @@ function update(dt){
 }
 
 /* ---------- drawing ---------- */
-function tank(x,y,a,ta,tr,col,name,hp,mhp,skin){
+function tank(x,y,a,ta,tr,col,name,hp,mhp){
   const sz=Math.min(tr,5),hh=13+sz,hw=20+sz*2,now=performance.now();if(tr>=6)col=tr==9?'hsl('+(now/6%360)+',90%,60%)':LCOL[tr];
-  if(skin&&skin.col)col=skin.rainbow?'hsl('+(now/4%360)+',85%,60%)':skin.col;
   g.save();g.translate(x,y);
   if(tr>=5){g.shadowColor=LGLOW[tr];g.shadowBlur=tr>=8?30:18}
-  if(skin&&skin.glow){g.shadowColor=skin.glow;g.shadowBlur=Math.max(g.shadowBlur||0,16)}
   g.rotate(a);
   g.fillStyle='#222';g.fillRect(-hw,-hh-6,hw*2,6);g.fillRect(-hw,hh,hw*2,6);
   g.fillStyle=col;
@@ -452,8 +365,8 @@ function draw(){
     g.strokeStyle='#e55';g.lineWidth=3;g.stroke();g.fillStyle='#000a';g.fillRect(b.x-30,b.y-58,60,7);g.fillStyle='#e44';g.fillRect(b.x-30,b.y-58,60*b.hp/b.mhp,7);
     g.fillStyle='#fff';g.font='11px Verdana';g.fillText('NPC BASE',b.x,b.y+4)});
   npcs.forEach(n=>tank(n.x,n.y,n.a,n.ta,tierOf(n.lv),'#c44','NPC',n.hp,n.s.mhp));
-  vis().forEach(p=>{tank(p.x,p.y,p.a,p.ta,p.tr,'#4a90e0',p.name,p.hp,p.mhp,skinById(p.sk));if(p.sf){g.strokeStyle='#6ff';g.lineWidth=3;g.beginPath();g.arc(p.x,p.y,40,0,7);g.stroke()}});
-  if(me.inv<=0||Math.floor(me.inv*8)%2)tank(me.x,me.y,me.a,me.ta,tierOf(me.lv),COLS[tierOf(me.lv)],me.name,me.hp,st(me.lv).mhp,skinById(me.skin));
+  vis().forEach(p=>{tank(p.x,p.y,p.a,p.ta,p.tr,'#4a90e0',p.name,p.hp,p.mhp);if(p.sf){g.strokeStyle='#6ff';g.lineWidth=3;g.beginPath();g.arc(p.x,p.y,40,0,7);g.stroke()}});
+  if(me.inv<=0||Math.floor(me.inv*8)%2)tank(me.x,me.y,me.a,me.ta,tierOf(me.lv),COLS[tierOf(me.lv)],me.name,me.hp,st(me.lv).mhp);
   if(me.safe>0){g.strokeStyle='#6ff';g.lineWidth=3;g.beginPath();g.arc(me.x,me.y,40,0,7);g.stroke()}
   bullets.forEach(b=>{g.fillStyle=b.o==id?'#ffe066':b.o=='npc'?'#f66':'#8cf';g.beginPath();g.arc(b.x,b.y,5,0,7);g.fill()});
   fx.forEach(f=>{g.fillStyle='rgba(255,150,40,'+(f.t/.35*.6)+')';g.beginPath();g.arc(f.x,f.y,f.r*(1.3-f.t/.35*.3),0,7);g.fill()});
@@ -467,48 +380,39 @@ KEYS.forEach(key=>{const b=document.createElement('button');b.id='u'+key;$('ups'
   b.onclick=()=>{const c=cost(me.lv[key]);if(me.money>=c&&me.lv[key]<MAXLV){const o=st(me.lv).mhp;me.money-=c;me.lv[key]++;sfx('up');me.hp+=st(me.lv).mhp-o}}});
 LK.forEach(key=>{const b=document.createElement('button');b.id='g'+key;$('lgu').appendChild(b);
   b.onclick=()=>{const v=me.lg[key],c=lcost(v);if(me.legend&&v<LMAX&&me.money>=c){const o=st(me.lv).mhp;me.money-=c;me.lg[key]++;sfx('bank');me.hp+=st(me.lv).mhp-o}}});
-function renderSkins(){
-  const el=$('skn');let h='';
-  allSkins().forEach(s=>{
-    const has=me.skins.includes(s.id),equipped=me.skin===s.id;
-    const label=(s.secret?'\u2605 ':'')+s.name+(equipped?' (equipped)':has?'':' - $'+s.cost);
-    h+='<button data-sk="'+s.id+'"'+(equipped?' disabled':'')+'>'+label+'</button>';
-  });
-  el.innerHTML=h;
-  el.querySelectorAll('button').forEach(b=>{
-    b.onclick=()=>{
-      const sid=b.dataset.sk,s=skinById(sid);
-      if(me.skins.includes(sid)){me.skin=sid;sfx('ping');note('Equipped '+s.name)}
-      else if(me.money>=s.cost){me.money-=s.cost;me.skins.push(sid);me.skin=sid;sfx('bank');sfx('up');note('Unlocked '+s.name+'!')}
-      else note('Not enough money for '+s.name);
-    };
-  });
-}
-$('bk').onclick=()=>{const c=bankCost();if(nearBank()&&me.money>=c&&me.bank<8&&me.bank<maxBank()){me.money-=c;me.bank++;sfx('bank');note('Bank upgraded: you now respawn at level '+me.bank*2)}};
+$('bk').onclick=()=>{const c=250*(me.bank+1);if(nearBank()&&me.money>=c&&me.bank<8){me.money-=c;me.bank++;sfx('bank');note('Bank upgraded: you now respawn at level '+me.bank*2)}};
 function hud(){
   const tr=tierOf(me.lv);
   $('info').innerHTML='<b>'+TIERS[tr]+' tank</b><br>Money: $'+me.money+'<br>HP: '+Math.max(0,Math.ceil(me.hp))+' / '+st(me.lv).mhp+'<br>Kills: '+me.kills+'<br>Game: '+(me.room=='public'?'Public map':'Private match')+'<br>Players here: '+(vis().length+1)+'<br>Network: '+netText()+(isMax()?'<br><b>MAX LEVEL: NPCs 60% weaker</b>':'')+'<br>'+safeText()+(me.auto?'<br>Auto-aim: ON':'');
   KEYS.forEach(key=>{const b=$('u'+key),l=me.lv[key];b.textContent=LBL[key]+' Lv'+l+(l>=MAXLV?' (max)':' - $'+cost(l));b.disabled=l>=MAXLV||me.money<cost(l)});
-  const bc2=bankCost(),mb=maxBank();$('bk').textContent=me.bank>=8?'Bank maxed':me.bank>=mb?'Level up your tank first':'Raise respawn level - $'+bc2;$('bk').disabled=me.bank>=8||me.bank>=mb||me.money<bc2||!nearBank();
+  const bc2=250*(me.bank+1);$('bk').textContent=me.bank>=8?'Bank maxed':'Raise respawn level - $'+bc2;$('bk').disabled=me.bank>=8||me.money<bc2||!nearBank();
   $('lgs').style.display=me.legend?'block':'none';
   LK.forEach(key=>{const b=$('g'+key),v=me.lg[key];b.textContent='Legendary '+LBL[key]+' '+v+'/'+LMAX+(v>=LMAX?' (max)':' - $'+lcost(v));b.disabled=v>=LMAX||me.money<lcost(v)});
-  renderSkins();
   $('hl').textContent='Full repair - $1500';$('hl').disabled=me.hp>=st(me.lv).mhp-.5||me.money<1500;
   $('sk').textContent=me.cool>0?'Skip cooldown - $1000':'Cooldown ready';$('sk').disabled=!(me.cool>0&&me.safe<=0&&me.money>=1000);
   $('mini').textContent='$'+me.money+'  HP '+Math.max(0,Math.ceil(me.hp))+'/'+st(me.lv).mhp+(me.safe>0?'  SAFE '+Math.ceil(me.safe)+'s':'')+'  (C: panels)';
-  $('bkh').textContent='Respawn level: '+me.bank*2+' / max '+maxBank()*2+(nearBank()?'':' (drive to the gold BANK)');
+  $('bkh').textContent='Respawn level: '+me.bank*2+(nearBank()?'':' (drive to the gold BANK)');
   const pl=$('plist'),v=vis(),key=v.map(p=>p.id+p.name).join('|');
   if(pl.dataset.k!==key){pl.dataset.k=key;pl.innerHTML='';
-    if(!v.length)pl.textContent=net=='online'?'Connected, waiting for their signal...':'Not paired - NPCs will fight you.';
-    v.forEach(p=>{const d=document.createElement('div');d.textContent=p.name+' - connected';pl.appendChild(d)})}
-  $('lv').style.display=net=='online'?'block':'none';
+    if(!v.length)pl.textContent='Nobody else here - NPCs will fight you.';
+    v.forEach(p=>{const b=document.createElement('button');b.textContent='Challenge '+p.name;b.onclick=()=>challenge(p);pl.appendChild(b)})}
 }
 setInterval(hud,200);
 $('hl').onclick=heal;
 $('sk').onclick=()=>{if(me.cool>0&&me.safe<=0&&me.money>=1000){me.money-=1000;me.cool=0;sfx('bank');note('Safe zone cooldown removed')}};
 $('snd').onclick=toggleSound;
 $('mus').onclick=()=>{musicOn=!musicOn;$('mus').textContent='Music: '+(musicOn?'on':'off');applyVol()};
+let lastJoin=0;
+function joinLobby(force){
+  const v=($('lb').value.trim()||'public').slice(0,16);
+  if(!force&&v.toLowerCase()==lobby.toLowerCase())return;
+  if(performance.now()-lastJoin<1500)return;lastJoin=performance.now();
+  lobby=v;note('Joining lobby "'+lobby+'"');enterRoom('public');connectNet();
+}
+$('jl').onclick=()=>joinLobby(true);$('lb').onchange=()=>joinLobby(false);
+$('lb').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
 document.addEventListener('click',e=>{initAudio();if(e.target.tagName=='BUTTON')e.target.blur()});
+connectNet();
 let last=performance.now();
 (function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)})(last);
 </script></body></html>
