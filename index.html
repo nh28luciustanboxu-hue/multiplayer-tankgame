@@ -184,7 +184,12 @@ function music(){
 
 /* ---------- networking: serverless WebRTC, connected purely by copying and pasting a connection link back and forth ---------- */
 let pc=null,dc=null,net='solo',connState='idle'; // net: 'solo' | 'online'   connState: 'idle' | 'hostWait' | 'joinWait'
-const ICE_SERVERS=[{urls:'stun:stun.l.google.com:19302'}]; // standard public STUN server, just for NAT traversal - not a signaling backend
+const ICE_SERVERS=[
+  {urls:'stun:stun.l.google.com:19302'}, // public STUN, for NAT traversal on open networks
+  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'}, // public TURN relay fallback for networks that block direct P2P (e.g. school/corporate NATs)
+  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+]; // none of these are a signaling backend - they only help two already-linked peers find a network path
 function newPC(){
   const c=new RTCPeerConnection({iceServers:ICE_SERVERS});
   c.onconnectionstatechange=()=>{if(pc===c&&['disconnected','failed','closed'].includes(c.connectionState))dropConn()};
@@ -201,7 +206,7 @@ function waitIce(c){return new Promise(res=>{if(c.iceGatheringState=='complete')
 /* the "link" is just the offer/answer SDP, base64-encoded with a short label so it's easy to tell apart and paste correctly */
 function encodeLink(desc,label){return 'TANKWARS-'+label+'-'+btoa(unescape(encodeURIComponent(JSON.stringify({type:desc.type,sdp:desc.sdp}))))}
 function decodeLink(text){
-  const m=text.trim().match(/TANKWARS-(OFFER|ANSWER)-([A-Za-z0-9+/=]+)/);
+  const m=text.replace(/\s+/g,'').match(/TANKWARS-(OFFER|ANSWER)-([A-Za-z0-9+/=]+)/);
   if(!m)throw new Error('bad link');
   return{label:m[1],desc:JSON.parse(decodeURIComponent(escape(atob(m[2]))))};
 }
